@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<grid name="defGrid">
+	<vertices coords="3">0 0 -2.77555756156289135e-17 2 0 -4.16333634234433764e-18 2 2 -4.16333634234433764e-18 0 2 0 1 2 2.77555756156289151e-18 0 1 -6.93889390390722838e-18 1 0 -1.1102230246251566e-17 2 1 2.77555756156289073e-18 1 1 2.77555756156289151e-18 1.5 2 -6.9388939039072278e-19 0.5 2 6.24500451351650569e-18 0 1.5 -3.46944695195361419e-18 0 0.5 -1.04083408558608426e-17 0.5 0 -1.45716771982051802e-17 1.5 0 -7.63278329429795183e-18 2 0.5 6.24500451351650492e-18 2 1.5 -6.93889390390723454e-19 0.5 1 2.77555756156289189e-18 1 1.5 2.77555756156289151e-18 1 0.5 2.77555756156289151e-18 1.5 1 2.77555756156289151e-18 0.5 1.5 4.5102810375396986e-18 0.5 0.5 1.0408340855860848e-18 1.5 0.5 4.5102810375396986e-18 1.5 1.5 1.04083408558608422e-18</vertices>
+	<edges>2 9 9 4 4 10 10 3 3 11 11 5 5 12 12 0 0 13 13 6 6 14 14 1 1 15 15 7 7 16 16 2 5 17 17 8 8 18 18 4 6 19 19 8 7 20 20 8 11 21 21 10 17 21 18 21 13 22 22 12 19 22 17 22 15 23 23 14 20 23 19 23 9 24 24 16 18 24 20 24</edges>
+	<quadrilaterals>3 11 21 10 5 17 21 11 8 18 21 17 4 10 21 18 0 13 22 12 6 19 22 13 8 17 22 19 5 12 22 17 1 15 23 14 7 20 23 15 8 19 23 20 6 14 23 19 2 9 24 16 4 18 24 9 8 20 24 18 7 16 24 20</quadrilaterals>
+	<subset_handler name="defSH">
+		<subset name="Inner" color="0.588235 0.588235 1 1" state="393216">
+			<vertices>0 5 6 8 11 12 13 14 16 17 18 20 21 22 23 24</vertices>
+			<edges>4 5 6 7 8 9 10 11 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39</edges>
+			<faces>0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15</faces>
+		</subset>
+		<subset name="Top" color="1 0 0 1" state="393216">
+			<vertices>4 3 10 9 2</vertices>
+			<edges>3 2 1 0</edges>
+		</subset>
+		<subset name="Aquifer" color="0 1 0 1" state="393216">
+			<vertices>7 15 1</vertices>
+			<edges>13 12</edges>
+		</subset>
+		<subset name="Well" color="0 0 1 1" state="393216">
+			<vertices>19</vertices>
+		</subset>
+	</subset_handler>
+	<subset_handler name="markSH">
+		<subset name="crease" color="1 1 1 1" state="0"/>
+		<subset name="fixed" color="1 1 1 1" state="0"/>
+	</subset_handler>
+	<selector name="defSel">
+		<vertices>20 1</vertices>
+	</selector>
+	<projection_handler name="defPH" subset_handler="0">
+		<default type="default">0 0</default>
+	</projection_handler>
+</grid>
+
