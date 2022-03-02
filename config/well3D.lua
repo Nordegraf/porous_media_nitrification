@@ -6,13 +6,13 @@ rhog = (-1.0)*Trench2D_rho*Trench2D_g
 numdays = 100
 tstop = numdays * 86400 -- 100 days
 
-local well2D =
+local well3D =
 {
   -- The domain specific setup
   domain =
   {
-    dim = 2,
-    grid = "grids/well.ugx",
+    dim = 3,
+    grid = "grids/well3D.ugx",
     numRefs = ARGS.numRefs,
     numPreRefs = ARGS.numPreRefs,
   },
@@ -58,12 +58,12 @@ local well2D =
     nitrification = 0.2,
   },
 
-  sources =
+  --[[sources =
   {
     {cmp = "p", value = -0.0003, subset = "Well", x = 1.0, y = 0.5},
     {cmp = "w_a", transport = -0.0003, subset = "Well", x = 1.0, y = 0.5},
     {cmp = "w_n", transport = -0.0003, subset = "Well", x = 1.0, y = 0.5},
-  },
+  },--]]
 
   initial =
   {
@@ -118,18 +118,18 @@ local well2D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p"}--, "kr", "s", "q", "o"},
+    data = {"w_a", "w_n", "p"},
   }
 
 }
 
 
-function WellAquiferBoundary(x, y, t)
-  return true, (1.0 - y) * rhog
+function WellAquiferBoundary(x, y, z, t, si)
+  return true, (1.0 - z) * rhog
 end
 
-function WellPressureStart(x, y, t)
-  return (1.0 - y) * rhog
+function WellPressureStart(x, y, z, t, si)
+  return (1.0 - z) * rhog
 end
 
-return well2D
+return well3D

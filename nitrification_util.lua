@@ -65,10 +65,6 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
         end
     end
 
-    -- the vanGenuchten model is calculated using the Richards Plugin
-    local conductivity = ProblemDisc:conductivity(medium.medium) -- k(S)
-    local saturation = ProblemDisc:saturation(medium.medium) -- S
-
     Ksat = nil
     porosity = nil
     for i, param in ipairs(self.problem.parameter) do
@@ -76,6 +72,22 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
             Ksat = param.Ksat
             porosity = param.thetaS
         end
+    end
+
+    local capillary = -1.0*elemDisc["p"]:value()
+
+    -- used for switching off the van Genuchten Model for debugging
+    local conductivity = nil
+    local saturation = nil
+    if true then
+        -- the vanGenuchten model is calculated using the Richards Plugin
+        conductivity = ProblemDisc:conductivity(medium.medium) -- k(S)
+        saturation = ProblemDisc:saturation(medium.medium) -- S
+        conductivity:set_capillary(capillary)
+        saturation:set_capillary(capillary)
+    else
+        conductivity = Ksat
+        saturation = 1.0
     end
 
     local r_scale = -86400 -- scaling for time unit in K_sat
@@ -113,11 +125,6 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     elemDisc["p"]:set_flux(fluidFlux)
     elemDisc["p"]:set_mass_scale(0.0)
 
-    local capillary = -1.0*elemDisc["p"]:value()
-
-    conductivity:set_capillary(capillary)
-    saturation:set_capillary(capillary)
-
 	-----------------------------------------
 	-- Equation [2] - Ammonia transport
 	-----------------------------------------
@@ -154,10 +161,10 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     elemDisc["w_n"]:set_reaction(nitrate_production)
 
     local si = self.domain:subset_handler():get_subset_index(subdom)
-    self.CompositeCapillary:add(si, capillary)
-    self.CompositeConductivity:add(si, conductivity)
-    self.CompositeSaturation:add(si, saturation)
-    self.CompositeDarcyVelocity:add(si, DarcyVelocity)
+    --self.CompositeCapillary:add(si, capillary)
+    --self.CompositeConductivity:add(si, conductivity)
+    --self.CompositeSaturation:add(si, saturation)
+    --self.CompositeDarcyVelocity:add(si, DarcyVelocity)
 
     print("Created Element Discretisation for Subset ", subdom)
 
@@ -168,11 +175,11 @@ end
 function ProblemDisc:CreateDomainDisc(approxSpace)
     self.domainDisc = DomainDiscretization(approxSpace)
 
-    self.CompositeCapillary = CompositeUserNumber(true)
-    self.CompositeConductivity = CompositeUserNumber(false)
-    self.CompositeSaturation = CompositeUserNumber(false)
-    self.CompositeDarcyVelocity = CompositeUserVector(false)
-    self.CompositeOxygenContent = CompositeUserNumber(false)
+    --self.CompositeCapillary = CompositeUserNumber(true)
+    --self.CompositeConductivity = CompositeUserNumber(false)
+    --self.CompositeSaturation = CompositeUserNumber(false)
+    --self.CompositeDarcyVelocity = CompositeUserVector(false)
+    --self.CompositeOxygenContent = CompositeUserNumber(false)
 
     for i,medium in ipairs(self.problem.medium) do
         local elemDisc = nil
@@ -215,13 +222,20 @@ function ProblemDisc:CreateDomainDisc(approxSpace)
     -- Adding Dirac Sources
     if self.problem.sources ~= nil then
         for i, v in ipairs(self.problem.sources) do
-            --local sourceDisc = ConvectionDiffusion(v.cmp, v.subset)
-            local source = nil
-            source = DiracSourceDisc(v.cmp, v.subset)
-            if v.value ~= nil then
-                source:add_source(v.value, Vec2d(v.x, v.y))
+
+            local source = DiracSourceDisc(v.cmp, v.subset)
+
+            local location = nil
+            if self.problem.domain.dim == 2 and v.x and v.y then
+                location = Vec2d(v.x, v.y)
+            elseif self.problem.domain.dim == 3 and v.x and v.y and v.z then
+                location = Vec3d(v.x, v.y, v.z)
             else
-                source:add_source(source:value(), Vec2d(v.x, v.y))
+                print("source coordinates not given")
+            end
+
+            if v.value then source:add_source(v.value, location)
+            elseif v.transport then source:add_transport_sink(v.transport, location)
             end
             self.domainDisc:add(source)
 
