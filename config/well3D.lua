@@ -12,7 +12,7 @@ local well3D =
   domain =
   {
     dim = 3,
-    grid = "grids/well3D.ugx",
+    grid = "grids/well3D_tetra.ugx",
     numRefs = ARGS.numRefs,
     numPreRefs = ARGS.numPreRefs,
   },
@@ -58,12 +58,12 @@ local well3D =
     nitrification = 0.2,
   },
 
-  --[[sources =
+  sources =
   {
-    {cmp = "p", value = -0.0003, subset = "Well", x = 1.0, y = 0.5},
-    {cmp = "w_a", transport = -0.0003, subset = "Well", x = 1.0, y = 0.5},
-    {cmp = "w_n", transport = -0.0003, subset = "Well", x = 1.0, y = 0.5},
-  },--]]
+    {cmp = "p", value = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_a", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_n", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+  },
 
   initial =
   {
@@ -118,7 +118,7 @@ local well3D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p"},
+    data = {"w_a", "w_n", "p", "kr", "s", "q", "pc"},
   }
 
 }

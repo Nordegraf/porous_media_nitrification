@@ -161,10 +161,12 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     elemDisc["w_n"]:set_reaction(nitrate_production)
 
     local si = self.domain:subset_handler():get_subset_index(subdom)
+    print(si)
+    print(subdom)
     --self.CompositeCapillary:add(si, capillary)
     --self.CompositeConductivity:add(si, conductivity)
     --self.CompositeSaturation:add(si, saturation)
-    --self.CompositeDarcyVelocity:add(si, DarcyVelocity)
+    self.CompositeDarcyVelocity:add(si, DarcyVelocity)
 
     print("Created Element Discretisation for Subset ", subdom)
 
@@ -178,8 +180,7 @@ function ProblemDisc:CreateDomainDisc(approxSpace)
     --self.CompositeCapillary = CompositeUserNumber(true)
     --self.CompositeConductivity = CompositeUserNumber(false)
     --self.CompositeSaturation = CompositeUserNumber(false)
-    --self.CompositeDarcyVelocity = CompositeUserVector(false)
-    --self.CompositeOxygenContent = CompositeUserNumber(false)
+    self.CompositeDarcyVelocity = CompositeUserVector(false)
 
     for i,medium in ipairs(self.problem.medium) do
         local elemDisc = nil
@@ -266,16 +267,16 @@ function ProblemDisc:CreateVTKOutput()
             self.vtk:select_nodal(GridFunctionNumberData(self.u, v), v)
         -- relative conductivity
         elseif v == "kr" then
-            self.vtk:select_element(self.CompositeConductivity, v)
+            --self.vtk:select_element(self.CompositeConductivity, v)
         -- saturation
         elseif v == "s" then
-            self.vtk:select_element(self.CompositeSaturation, v)
+            --self.vtk:select_element(self.CompositeSaturation, v)
         -- darcy velocity
         elseif v == "q" then
-            self.vtk:select_element(self.CompositeDarcyVelocity, v)
+            --self.vtk:select_element(self.CompositeDarcyVelocity, v)
         -- capillary pressure
         elseif v == "pc" then
-            self.vtk:select(self.CompositeCapillary, v)
+            --self.vtk:select(self.CompositeCapillary, v)
         end
     end
 
