@@ -6,13 +6,13 @@ rhog = (-1.0)*Trench2D_rho*Trench2D_g
 numdays = 100
 tstop = numdays * 86400 -- 100 days
 
-local well2D =
+local trench2D =
 {
   -- The domain specific setup
   domain =
   {
     dim = 2,
-    grid = "grids/well.ugx",
+    grid = "grids/trench2D.ugx",
     numRefs = ARGS.numRefs,
     numPreRefs = ARGS.numPreRefs,
   },
@@ -43,8 +43,9 @@ local well2D =
     gravity = Trench2D_g,            -- [ m s^{-2}], must be negative!
     density = 998.23,               -- [ kg m^{-3} ] saltwater density
     viscosity = 1.002e-3,           -- [ Pa s ]
-    ammonia_diffusion = 1.86e-9,  -- [ m^2/s ]
-    nitrate_diffusion = 1.7e-9,  -- [ m^2/s ]
+    ammonia_diffusion = 18.8571e-6,  -- [ m^2/s ]
+    nitrate_diffusion = 18.8571e-6,  -- [ m^2/s ]
+    nitrite_diffusion = 18.8571e-6  -- [ m^2/s ]
   },
    medium =
    {
@@ -55,32 +56,23 @@ local well2D =
 
   reactions =
   {
-    rate = 6, --[1]
-    molar_mass = 0.018039 --[kg/mol]
-  },
-
-  sources =
-  {
-    {cmp = "p", value = -0.0005, subset = "Well", x = 1.0, y = 0.5},
-    {cmp = "w_a", transport = -0.0005, subset = "Well", x = 1.0, y = 0.5},
-    {cmp = "w_n", transport = -0.0005, subset = "Well", x = 1.0, y = 0.5},
+    ammonia_rate = 0.2,
+    nitrite_rate = 0.1
   },
 
   initial =
   {
-    { cmp = "w_a", value = 0.0 },
-    { cmp = "w_n", value = 0.0 },
-    { cmp = "p", value = "WellPressureStart" },
+    { cmp = "c_am", value = 0.0 },
+    { cmp = "c_it", value = 0.0 },
+    { cmp = "c_at", value = 0.0 },
+    { cmp = "p", value = "Trench2DPressureStart" },
   },
-
   boundary =
   {
-    -- Top
-    {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = -0.00006},
-    {cmp = "w_a", type = "dirichlet", bnd = "Top", value = 1.0},
-
-    -- Aquifer
-    {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "WellAquiferBoundary" }
+     {cmp = "p", type = "dirichlet", bnd = "Trench", value = 0.0},
+     {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "Trench2DAquiferBoundary" },
+     {cmp = "c_am", type = "dirichlet", bnd = "Trench", value = 1},
+     {cmp = "c_am", type = "dirichlet", bnd = "Aquifer", value = 0},
   },
 
   linSolver =
@@ -109,9 +101,9 @@ local well2D =
     start 	= 0.0,				      -- [s]  start time point
     stop	= tstop,			        -- [s]  end time point
     max_time_steps = 10000,		  -- [1]	maximum number of time steps
-    dt		= 100,		          -- [s]  initial time step
+    dt		= 1200,		          -- [s]  initial time step
     dtmin	= 0.001,	          -- [s]  minimal time step
-    dtmax	= tstop/10,	            -- [s]  maximal time step
+    dtmax	= tstop/100,	            -- [s]  maximal time step
     dtred	= 0.5,			          -- [1]  reduction factor for time step
     tol 	= 1e-2,
   },
@@ -119,18 +111,30 @@ local well2D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p", "q"}--, "kr", "s", "q", "o"},
+    data = {"c_am", "c_it", "c_at", "p", "kr", "s", "q", "o"},
   }
 
 }
 
 
-function WellAquiferBoundary(x, y, t)
+function Trench2DDrainagePressureBoundaryTime(x, y, t, tD)
+  if (t <= tD) then
+    return true, (2.2*t / tD - 2.0) * 1025.0 * 9.81
+  else
+    return true, 0.2 * 1025.0 * 9.81
+  end
+end
+
+function Trench2DDrainagePressureBoundary(x, y, t)
+  return Trench2DDrainagePressureBoundaryTime(x, y, t, 86400)
+end
+
+function Trench2DAquiferBoundary(x, y, t)
   return true, (1.0 - y) * rhog
 end
 
-function WellPressureStart(x, y, t)
+function Trench2DPressureStart(x, y, t)
   return (1.0 - y) * rhog
 end
 
-return well2D
+return trench2D

@@ -1,8 +1,8 @@
 -- config for modelling a drainage trench with constant groundwater flow
 
-Trench2D_rho = 998.23
-Trench2D_g = -9.81 -- must be negative!
-rhog = (-1.0)*Trench2D_rho*Trench2D_g
+Well3D_rho = 998.23
+Well3D_g = -9.81 -- must be negative!
+rhog = (-1.0)*Well3D_rho*Well3D_g
 numdays = 100
 tstop = numdays * 86400 -- 100 days
 
@@ -40,7 +40,7 @@ local well3D =
 
   flow =
   {
-    gravity = Trench2D_g,            -- [ m s^{-2}], must be negative!
+    gravity = Well3D_g,            -- [ m s^{-2}], must be negative!
     density = 998.23,               -- [ kg m^{-3} ] saltwater density
     viscosity = 1.002e-3,           -- [ Pa s ]
     ammonia_diffusion = 18.8571e-6,  -- [ m^2/s ]
@@ -55,7 +55,8 @@ local well3D =
 
   reactions =
   {
-    nitrification = 0.2,
+    rate = 6, --[1]
+    molar_mass = 0.018039 --[kg/mol]
   },
 
   sources =
@@ -118,7 +119,7 @@ local well3D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p", "kr", "s", "q", "pc"},
+    data = {"w_a", "w_n", "p", "q"}, --"kr", "s", "q", "pc"},
   }
 
 }

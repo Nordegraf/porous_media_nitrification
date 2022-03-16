@@ -125,26 +125,8 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     elemDisc["p"]:set_flux(fluidFlux)
     elemDisc["p"]:set_mass_scale(0.0)
 
-	-----------------------------------------
-	-- Equation [2] - Ammonia transport
-	-----------------------------------------
-    -- \frac{\partial}{\partial t}(\phi S_w \rho \omega_{N}) + \nabla  (\bvec{q} \rho \omega_{N} - \phi S_w \rho D \nabla \omega_{N}) = \phi S_w \rho \Gamma + \phi S_w \rho k
-
-    local am_diffusion = ScaleAddLinkerMatrix()
-    am_diffusion:add(volufrac, self.problem.flow.ammonia_diffusion*self.problem.flow.density)
-
-    elemDisc["w_a"]:set_mass_scale(storage)
-    elemDisc["w_a"]:set_velocity(fluidFlux)
-    elemDisc["w_a"]:set_diffusion(am_diffusion)
-
-    local ammonia_oxidation = ScaleAddLinkerNumber()
-    -- -phi * S * rho * k
-    ammonia_oxidation:add(self.problem.reactions.nitrification * self.problem.flow.density, volufrac)
-
-    elemDisc["w_a"]:set_reaction(ammonia_oxidation)
-
     -----------------------------------------
-	-- Equation [3] - Nitrate transport
+	-- Equation [2] - Nitrate transport
 	-----------------------------------------
     -- \frac{\partial}{\partial t}(\phi S_w \rho \omega_{A}) + \nabla  (\bvec{q} \rho \omega_{A} - \phi S_w \rho D \nabla \omega_{A}) = \phi S_w \rho \Gamma - \phi S_w \rho k
 
@@ -155,14 +137,51 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     elemDisc["w_n"]:set_velocity(fluidFlux)
     elemDisc["w_n"]:set_diffusion(nitrate_diffusion)
 
-    -- phi * S * rho * k
-    local nitrate_production = ScaleAddLinkerNumber()
-    nitrate_production:add(-1.0, ammonia_oxidation)
-    elemDisc["w_n"]:set_reaction(nitrate_production)
+    -- -phi * S * M/rho * k * omega^A
+    function nitrification_switch(p)
+        if p <= 0 then
+            return 1
+        else
+            return 0
+        end
+    end
+
+    function dnitrification_switch(p)
+        return 0
+    end
+
+    local heaviside_nit = LuaUserFunctionNumber("nitrification_switch", 1)
+    heaviside_nit:set_deriv(0, "dnitrification_switch")
+    heaviside_nit:set_input(0, elemDisc["p"]:value())
+
+    -- phi * S * M/rho * k * omega^A
+    local nitrification = ScaleAddLinkerNumber()
+    nitrification:add(self.problem.reactions.rate * self.problem.reactions.molar_mass / self.problem.flow.density, volufrac*elemDisc["w_a"]:value()*heaviside_nit)
+
+    elemDisc["w_n"]:set_source(nitrification)
+    elemDisc["w_n"]:set_upwind(FullUpwind())
+
+	-----------------------------------------
+	-- Equation [3] - Ammonia transport
+	-----------------------------------------
+    -- \frac{\partial}{\partial t}(\phi S_w \rho \omega_{N}) + \nabla  (\bvec{q} \rho \omega_{N} - \phi S_w \rho D \nabla \omega_{N}) = \phi S_w \rho \Gamma + \phi S_w \rho k
+
+    local am_diffusion = ScaleAddLinkerMatrix()
+    am_diffusion:add(volufrac, self.problem.flow.ammonia_diffusion*self.problem.flow.density)
+
+    elemDisc["w_a"]:set_mass_scale(storage)
+    elemDisc["w_a"]:set_velocity(fluidFlux)
+    elemDisc["w_a"]:set_diffusion(am_diffusion)
+
+    -- - phi * S * M/rho * k * omega^A
+    local ammonia_oxidation = ScaleAddLinkerNumber()
+    ammonia_oxidation:add(-1.0, nitrification)
+    elemDisc["w_a"]:set_source(ammonia_oxidation)
+    elemDisc["w_a"]:set_upwind(FullUpwind())
 
     local si = self.domain:subset_handler():get_subset_index(subdom)
     print(si)
-    print(subdom)
+
     --self.CompositeCapillary:add(si, capillary)
     --self.CompositeConductivity:add(si, conductivity)
     --self.CompositeSaturation:add(si, saturation)
@@ -273,7 +292,7 @@ function ProblemDisc:CreateVTKOutput()
             --self.vtk:select_element(self.CompositeSaturation, v)
         -- darcy velocity
         elseif v == "q" then
-            --self.vtk:select_element(self.CompositeDarcyVelocity, v)
+            self.vtk:select_element(self.CompositeDarcyVelocity, v)
         -- capillary pressure
         elseif v == "pc" then
             --self.vtk:select(self.CompositeCapillary, v)
