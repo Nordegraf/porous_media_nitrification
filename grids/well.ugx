@@ -14,8 +14,8 @@
 			<edges>3 2 1 0</edges>
 		</subset>
 		<subset name="Aquifer" color="0 1 0 1" state="393216">
-			<vertices>7 15 1</vertices>
-			<edges>13 12</edges>
+			<vertices>15 1 7</vertices>
+			<edges>12 13</edges>
 		</subset>
 		<subset name="Well" color="0 0 1 1" state="393216">
 			<vertices>19</vertices>
@@ -26,7 +26,7 @@
 		<subset name="fixed" color="1 1 1 1" state="0"/>
 	</subset_handler>
 	<selector name="defSel">
-		<vertices>20 1</vertices>
+		<edges>37 1</edges>
 	</selector>
 	<projection_handler name="defPH" subset_handler="0">
 		<default type="default">0 0</default>

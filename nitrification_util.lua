@@ -104,6 +104,7 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     DarcyVelocity:set_pressure_gradient(elemDisc["p"]:gradient())
     DarcyVelocity:set_density(density)
     DarcyVelocity:set_gravity(self.gravity)
+    self.DarcyVelocity = DarcyVelocity
 
     local volufrac = ScaleAddLinkerNumber()
     volufrac:add(porosity, saturation)
@@ -159,32 +160,37 @@ function ProblemDisc:CreateElemDisc(subdom, medium)
     nitrification:add(self.problem.reactions.rate * self.problem.reactions.molar_mass / self.problem.flow.density, volufrac*elemDisc["w_a"]:value()*heaviside_nit)
 
     elemDisc["w_n"]:set_source(nitrification)
-    elemDisc["w_n"]:set_upwind(FullUpwind())
 
 	-----------------------------------------
-	-- Equation [3] - Ammonia transport
+	-- Equation [3] - Ammonium transport
 	-----------------------------------------
     -- \frac{\partial}{\partial t}(\phi S_w \rho \omega_{N}) + \nabla  (\bvec{q} \rho \omega_{N} - \phi S_w \rho D \nabla \omega_{N}) = \phi S_w \rho \Gamma + \phi S_w \rho k
 
     local am_diffusion = ScaleAddLinkerMatrix()
-    am_diffusion:add(volufrac, self.problem.flow.ammonia_diffusion*self.problem.flow.density)
+    am_diffusion:add(volufrac, self.problem.flow.ammonium_diffusion*self.problem.flow.density)
 
     elemDisc["w_a"]:set_mass_scale(storage)
     elemDisc["w_a"]:set_velocity(fluidFlux)
     elemDisc["w_a"]:set_diffusion(am_diffusion)
 
     -- - phi * S * M/rho * k * omega^A
-    local ammonia_oxidation = ScaleAddLinkerNumber()
-    ammonia_oxidation:add(-1.0, nitrification)
-    elemDisc["w_a"]:set_source(ammonia_oxidation)
-    elemDisc["w_a"]:set_upwind(FullUpwind())
+    local ammonium_oxidation = ScaleAddLinkerNumber()
+    ammonium_oxidation:add(-1.0, nitrification)
+    elemDisc["w_a"]:set_source(ammonium_oxidation)
+
+    if self.problem.flow.upwind == "full" then
+        elemDisc["w_a"]:set_upwind(FullUpwind())
+        elemDisc["w_n"]:set_upwind(FullUpwind())
+    elseif self.problem.flow.upwind == "partial" then
+        elemDisc["w_a"]:set_upwind(PartialUpwind())
+        elemDisc["w_n"]:set_upwind(PartialUpwind())
+    end
 
     local si = self.domain:subset_handler():get_subset_index(subdom)
-    print(si)
 
-    --self.CompositeCapillary:add(si, capillary)
-    --self.CompositeConductivity:add(si, conductivity)
-    --self.CompositeSaturation:add(si, saturation)
+    self.CompositeCapillary:add(si, capillary)
+    self.CompositeConductivity:add(si, conductivity)
+    self.CompositeSaturation:add(si, saturation)
     self.CompositeDarcyVelocity:add(si, DarcyVelocity)
 
     print("Created Element Discretisation for Subset ", subdom)
@@ -196,9 +202,9 @@ end
 function ProblemDisc:CreateDomainDisc(approxSpace)
     self.domainDisc = DomainDiscretization(approxSpace)
 
-    --self.CompositeCapillary = CompositeUserNumber(true)
-    --self.CompositeConductivity = CompositeUserNumber(false)
-    --self.CompositeSaturation = CompositeUserNumber(false)
+    self.CompositeCapillary = CompositeUserNumber(true)
+    self.CompositeConductivity = CompositeUserNumber(false)
+    self.CompositeSaturation = CompositeUserNumber(false)
     self.CompositeDarcyVelocity = CompositeUserVector(false)
 
     for i,medium in ipairs(self.problem.medium) do
@@ -255,14 +261,14 @@ function ProblemDisc:CreateDomainDisc(approxSpace)
             end
 
             if v.value then source:add_source(v.value, location)
-            elseif v.transport then source:add_transport_sink(v.transport, location)
+            elseif v.transport then source:add_transport_sink(v.transport)
             end
             self.domainDisc:add(source)
 
             if v.value ~= nil then
                 print("Added DiracPointSource with value " .. v.value .. " on subset " .. v.subset)
-            else
-                print("Added DiracPointSource with GridFunction value on subset " .. v.subset)
+            elseif v.transport ~= nil then
+                print("Added DiracPointSource with transport value" ..v.transport.. "on subset " .. v.subset)
             end
         end
     end
@@ -286,26 +292,26 @@ function ProblemDisc:CreateVTKOutput()
             self.vtk:select_nodal(GridFunctionNumberData(self.u, v), v)
         -- relative conductivity
         elseif v == "kr" then
-            --self.vtk:select_element(self.CompositeConductivity, v)
+            self.vtk:select_element(self.CompositeConductivity, v)
         -- saturation
         elseif v == "s" then
-            --self.vtk:select_element(self.CompositeSaturation, v)
+            self.vtk:select_element(self.CompositeSaturation, v)
         -- darcy velocity
         elseif v == "q" then
-            self.vtk:select_element(self.CompositeDarcyVelocity, v)
+            self.vtk:select(self.CompositeDarcyVelocity, v)
         -- capillary pressure
         elseif v == "pc" then
-            --self.vtk:select(self.CompositeCapillary, v)
+            self.vtk:select(self.CompositeCapillary, v)
         end
     end
 
 end
 
-
 function ProblemDisc:CreateModelMap(paramDesc)
     local modelMap = {}
     for i, medium in ipairs(paramDesc) do
         if medium.type == "vanGenuchten" then
+            medium.alpha= medium.alpha / (-1.0 * self.problem.flow.gravity * self.problem.flow.density)
             modelMap[medium.uid] = CreateVanGenuchtenModel(json.encode(medium))
         elseif medium.type == "const" then
             modelMap[medium.uid] = medium.value

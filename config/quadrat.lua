@@ -1,9 +1,11 @@
-rho = 998.23
-g = -9.81 -- must be negative!
-rhog = (-1.0)*rho*g
-tstop = 10
+-- config for modelling contamination of a well
+upwind_scheme = util.GetParam("--upwind", "full")
 
-local quadrat =
+rhog = 998.23*9.81
+numdays = 40000
+tstop = numdays * 86400
+
+local well2D =
 {
   -- The domain specific setup
   domain =
@@ -16,49 +18,60 @@ local quadrat =
 
   -- medium parameters for vanGenuchten Model
   parameter = {
-    { uid = "@Sand",
+    { uid = "@Sandstone",
       type = "vanGenuchten",
-      thetaS = 0.37, thetaR = 0.043,
-      alpha = 0.087/rhog, n = 1.58,
-      Ksat = 1}
+      thetaS = 0.250, thetaR = 0.153,
+      alpha = 0.79, n = 10.4,
+      Ksat = 1.08},
+
+    { uid = "@TouchetSiltLoam",
+      type = "vanGenuchten",
+      thetaS = 0.469, thetaR = 0.190,
+      alpha = 0.50, n = 7.09,
+      Ksat = 3.03},
+
+    { uid = "@SiltLoam",
+      type = "vanGenuchten",
+      thetaS = 0.396, thetaR = 0.131,
+      alpha = 0.423, n = 2.06,
+      Ksat = 0.0496},
   },
 
   flow =
   {
-    gravity = g,            -- [ m s^{-2}], must be negative!
+    gravity = -9.81,            -- [ m s^{-2}], must be negative!
     density = 998.23,               -- [ kg m^{-3} ] saltwater density
     viscosity = 1.002e-3,           -- [ Pa s ]
-    ammonia_diffusion = 18.8571e-6,  -- [ m^2/s ]
-    nitrate_diffusion = 18.8571e-6,  -- [ m^2/s ]
-    nitrite_diffusion = 18.8571e-6  -- [ m^2/s ]
+    ammonium_diffusion = 1.86e-9,  -- [ m^2/s ]
+    nitrate_diffusion = 1.7e-9,  -- [ m^2/s ]
+    upwind = upwind_scheme, -- full, partial, no
   },
+   medium =
+   {
+      {   subsets = {"Inner"},
+          medium = "@SiltLoam",
+      }
+    },
 
   reactions =
   {
-    ammonia_rate = 0.2,
-    nitrite_rate = 0.1
+    rate = 0.6, --[1]
+    molar_mass = 0.018039 --[kg/mol]
   },
 
-  medium =
+  sources =
   {
-    { subsets = {"Inner"},
-      medium = "@Sand"
-    },
   },
 
   initial =
   {
-    { cmp = "c_am", value = 0.0 },
-    { cmp = "c_it", value = 0.0 },
-    { cmp = "c_at", value = 0.0 },
-    { cmp = "p", value = "PressureStart" },
+    { cmp = "w_a", value = 1.0 },
+    { cmp = "w_n", value = 0.0 },
+    { cmp = "p", value = "WellPressureStart" },
   },
 
   boundary =
   {
-    { cmp = "p", type = "flux", bnd = "Upper", inner="Inner", value = -1},
-    { cmp = "p", type = "dirichlet", bnd = "Outflow", value = "PressureStart"},
-    { cmp = "c_am", type = "dirichlet", bnd = "Upper", value = 1.0}
   },
 
   linSolver =
@@ -86,10 +99,10 @@ local quadrat =
     control	= "limex",
     start 	= 0.0,				      -- [s]  start time point
     stop	= tstop,			        -- [s]  end time point
-    max_time_steps = 1000,		  -- [1]	maximum number of time steps
+    max_time_steps = 10000,		  -- [1]	maximum number of time steps
     dt		= 1000,		          -- [s]  initial time step
     dtmin	= 0.001,	          -- [s]  minimal time step
-    dtmax	= tstop/10,	            -- [s]  maximal time step
+    dtmax	= 43200,	            -- [s]  maximal time step
     dtred	= 0.5,			          -- [1]  reduction factor for time step
     tol 	= 1e-2,
   },
@@ -97,12 +110,13 @@ local quadrat =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"c_am", "c_it", "c_at", "p", "kr", "s", "q", "pc", "o"},
-  },
+    data = {"w_a", "w_n", "p", "kr", "s", "q"},
+  }
+
 }
 
-function PressureStart(x, y, t)
+function WellPressureStart(x, y, t)
   return (1.0 - y) * rhog
 end
 
-return quadrat
+return well2D
