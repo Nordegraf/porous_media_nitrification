@@ -261,7 +261,7 @@ function ProblemDisc:CreateDomainDisc(approxSpace)
             end
 
             if v.value then source:add_source(v.value, location)
-            elseif v.transport then source:add_transport_sink(v.transport)
+            elseif v.transport then source:add_transport_sink(v.transport, location)
             end
             self.domainDisc:add(source)
 

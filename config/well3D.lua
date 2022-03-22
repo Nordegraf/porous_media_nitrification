@@ -5,6 +5,11 @@ Well3D_g = -9.81 -- must be negative!
 rhog = (-1.0)*Well3D_rho*Well3D_g
 numdays = 100
 tstop = numdays * 86400 -- 100 days
+pump = -0.0002
+entry = -0.00022
+tD = 86400 * 10
+
+
 
 local well3D =
 {
@@ -43,8 +48,9 @@ local well3D =
     gravity = Well3D_g,            -- [ m s^{-2}], must be negative!
     density = 998.23,               -- [ kg m^{-3} ] saltwater density
     viscosity = 1.002e-3,           -- [ Pa s ]
-    ammonia_diffusion = 18.8571e-6,  -- [ m^2/s ]
-    nitrate_diffusion = 18.8571e-6,  -- [ m^2/s ]
+    ammonium_diffusion = 1.86e-9,  -- [ m^2/s ]
+    nitrate_diffusion = 1.7e-9,  -- [ m^2/s ]
+    upwind = upwind_scheme, -- full, partial, no
   },
    medium =
    {
@@ -55,15 +61,15 @@ local well3D =
 
   reactions =
   {
-    rate = 6, --[1]
+    rate = 0.6, --[1]
     molar_mass = 0.018039 --[kg/mol]
   },
 
   sources =
   {
-    {cmp = "p", value = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
-    {cmp = "w_a", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
-    {cmp = "w_n", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "p", value = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_a", transport = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_n", transport = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
   },
 
   initial =
@@ -73,15 +79,18 @@ local well3D =
     { cmp = "p", value = "WellPressureStart" },
   },
 
-  boundary =
+   boundary =
   {
     -- Top
-    {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = -0.00009},
-    {cmp = "w_n", type = "dirichlet", bnd = "Top", value = 1.0},
+    {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = entry},
+    {cmp = "w_a", type = "dirichlet", bnd = "Top", value = "manure"},
 
     -- Aquifer
-    {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "WellAquiferBoundary" }
+    {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "WellPressureStart"},
+    {cmp = "w_a", type = "dirichlet", bnd = "Aquifer", value = 0},
+    {cmp = "w_n", type = "dirichlet", bnd = "Aquifer", value = 0},
   },
+
 
   linSolver =
   { type = "bicgstab",			-- linear solver type ["bicgstab", "cg", "linear"]
@@ -119,18 +128,21 @@ local well3D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p", "q"}, --"kr", "s", "q", "pc"},
+    data = {"w_a", "w_n", "p", "kr", "s", "q"},
   }
-
 }
 
 
-function WellAquiferBoundary(x, y, z, t, si)
-  return true, (1.0 - z) * rhog
+function manure(x, y, t)
+  if t <= tD then
+    return math.max(1.0-t/tD, 0.1)
+  else
+    return 0.1
+  end
 end
 
-function WellPressureStart(x, y, z, t, si)
-  return (1.0 - z) * rhog
+function WellPressureStart(x, y, t)
+  return (1.0 - y) * rhog
 end
 
 return well3D

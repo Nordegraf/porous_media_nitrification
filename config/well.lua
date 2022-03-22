@@ -137,14 +137,6 @@ function manure(x, y, t)
   end
 end
 
-function rain(x, y, t)
-  if t <= tD then
-    return true, entry
-  else
-    return false, entry
-  end
-end
-
 function WellPressureStart(x, y, t)
   return (1.0 - y) * rhog
 end
