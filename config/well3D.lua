@@ -1,10 +1,11 @@
 -- config for modelling a drainage trench with constant groundwater flow
 
-Well3D_rho = 998.23
-Well3D_g = -9.81 -- must be negative!
-rhog = (-1.0)*Well3D_rho*Well3D_g
-numdays = 100
-tstop = numdays * 86400 -- 100 days
+rhog = 998.23*9.81
+numdays = 200
+tstop = numdays * 86400
+tD = 86400 * 10
+pump = -0.0002
+entry = -0.00018
 
 local well3D =
 {
@@ -12,25 +13,13 @@ local well3D =
   domain =
   {
     dim = 3,
-    grid = "grids/well3D_tetra.ugx",
+    grid = "grids/well3D_tetra_v.ugx",
     numRefs = ARGS.numRefs,
     numPreRefs = ARGS.numPreRefs,
   },
 
   -- medium parameters for vanGenuchten Model
   parameter = {
-    { uid = "@Sandstone",
-      type = "vanGenuchten",
-      thetaS = 0.250, thetaR = 0.153,
-      alpha = 0.79/rhog, n = 10.4,
-      Ksat = 1.08},
-
-    { uid = "@TouchetSiltLoam",
-      type = "vanGenuchten",
-      thetaS = 0.469, thetaR = 0.190,
-      alpha = 0.50/rhog, n = 7.09,
-      Ksat = 3.03},
-
     { uid = "@SiltLoam",
       type = "vanGenuchten",
       thetaS = 0.396, thetaR = 0.131,
@@ -40,11 +29,12 @@ local well3D =
 
   flow =
   {
-    gravity = Well3D_g,            -- [ m s^{-2}], must be negative!
+    gravity = -9.81,            -- [ m s^{-2}], must be negative!
     density = 998.23,               -- [ kg m^{-3} ] saltwater density
     viscosity = 1.002e-3,           -- [ Pa s ]
-    ammonia_diffusion = 18.8571e-6,  -- [ m^2/s ]
-    nitrate_diffusion = 18.8571e-6,  -- [ m^2/s ]
+    ammonium_diffusion = 1.86e-9,  -- [ m^2/s ]
+    nitrate_diffusion = 1.7e-9,  -- [ m^2/s ]
+    upwind = "full", -- full, partial, no
   },
    medium =
    {
@@ -55,15 +45,15 @@ local well3D =
 
   reactions =
   {
-    rate = 6, --[1]
+    rate = 0.6, --[1]
     molar_mass = 0.018039 --[kg/mol]
   },
 
   sources =
   {
-    {cmp = "p", value = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
-    {cmp = "w_a", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
-    {cmp = "w_n", transport = -0.0003, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "p", value = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_a", transport = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
+    {cmp = "w_n", transport = pump, subset = "Well", x = 1.0, y = 1.0, z = 0.5},
   },
 
   initial =
@@ -76,11 +66,13 @@ local well3D =
   boundary =
   {
     -- Top
-    {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = -0.00009},
-    {cmp = "w_n", type = "dirichlet", bnd = "Top", value = 1.0},
+    {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = entry},
+    {cmp = "w_a", type = "dirichlet", bnd = "Top", value = "manure"},
 
     -- Aquifer
-    {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "WellAquiferBoundary" }
+    {cmp = "p", type = "dirichlet", bnd = "Aquifer", value = "WellPressureStart"},
+    {cmp = "w_a", type = "dirichlet", bnd = "Aquifer", value = 0},
+    {cmp = "w_n", type = "dirichlet", bnd = "Aquifer", value = 0},
   },
 
   linSolver =
@@ -109,7 +101,7 @@ local well3D =
     start 	= 0.0,				      -- [s]  start time point
     stop	= tstop,			        -- [s]  end time point
     max_time_steps = 10000,		  -- [1]	maximum number of time steps
-    dt		= 100,		          -- [s]  initial time step
+    dt		= 0.01,		          -- [s]  initial time step
     dtmin	= 0.001,	          -- [s]  minimal time step
     dtmax	= tstop/10,	            -- [s]  maximal time step
     dtred	= 0.5,			          -- [1]  reduction factor for time step
@@ -119,17 +111,20 @@ local well3D =
   output =
   {
     file = "./", -- must be a folder!
-    data = {"w_a", "w_n", "p", "q"}, --"kr", "s", "q", "pc"},
+    data = {"w_a", "w_n", "p", "kr", "s", "q"},
   }
 
 }
 
-
-function WellAquiferBoundary(x, y, z, t, si)
-  return true, (1.0 - z) * rhog
+function manure(x, y, z, t)
+  if t <= tD then
+    return math.max(1.0-t/tD, 0.1)
+  else
+    return 0.1
+  end
 end
 
-function WellPressureStart(x, y, z, t, si)
+function WellPressureStart(x, y, z, t)
   return (1.0 - z) * rhog
 end
 

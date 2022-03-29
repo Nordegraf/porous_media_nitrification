@@ -2,7 +2,7 @@
 upwind_scheme = util.GetParam("--upwind", "full")
 
 rhog = 998.23*9.81
-numdays = 40000
+numdays = 30000
 tstop = numdays * 86400
 
 local well2D =
@@ -18,18 +18,6 @@ local well2D =
 
   -- medium parameters for vanGenuchten Model
   parameter = {
-    { uid = "@Sandstone",
-      type = "vanGenuchten",
-      thetaS = 0.250, thetaR = 0.153,
-      alpha = 0.79, n = 10.4,
-      Ksat = 1.08},
-
-    { uid = "@TouchetSiltLoam",
-      type = "vanGenuchten",
-      thetaS = 0.469, thetaR = 0.190,
-      alpha = 0.50, n = 7.09,
-      Ksat = 3.03},
-
     { uid = "@SiltLoam",
       type = "vanGenuchten",
       thetaS = 0.396, thetaR = 0.131,
@@ -100,9 +88,9 @@ local well2D =
     start 	= 0.0,				      -- [s]  start time point
     stop	= tstop,			        -- [s]  end time point
     max_time_steps = 10000,		  -- [1]	maximum number of time steps
-    dt		= 1000,		          -- [s]  initial time step
+    dt		= 1,		          -- [s]  initial time step
     dtmin	= 0.001,	          -- [s]  minimal time step
-    dtmax	= 43200,	            -- [s]  maximal time step
+    dtmax	= 100*86400,	            -- [s]  maximal time step
     dtred	= 0.5,			          -- [1]  reduction factor for time step
     tol 	= 1e-2,
   },
