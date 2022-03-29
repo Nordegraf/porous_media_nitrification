@@ -63,7 +63,7 @@ local well3D =
     { cmp = "p", value = "WellPressureStart" },
   },
 
-  boundary =
+   boundary =
   {
     -- Top
     {cmp = "p", type = "flux", bnd = "Top", inner="Inner", value = entry},
@@ -74,6 +74,7 @@ local well3D =
     {cmp = "w_a", type = "dirichlet", bnd = "Aquifer", value = 0},
     {cmp = "w_n", type = "dirichlet", bnd = "Aquifer", value = 0},
   },
+
 
   linSolver =
   { type = "bicgstab",			-- linear solver type ["bicgstab", "cg", "linear"]
@@ -113,7 +114,6 @@ local well3D =
     file = "./", -- must be a folder!
     data = {"w_a", "w_n", "p", "kr", "s", "q"},
   }
-
 }
 
 function manure(x, y, z, t)
